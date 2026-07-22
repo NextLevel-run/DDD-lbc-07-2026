@@ -1,0 +1,45 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Binaires Go compilés
+bin/
+api
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.txt
+*.coverprofile
+
+# Dependency directories (optional, décommente si tu utilises vendor)
+# vendor/
+
+# Go workspace file
+go.work
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Logs
+*.log
