@@ -7,7 +7,7 @@
 
 # Binaires Go compilés
 bin/
-api
+/api
 *.test
 
 # Output of the go coverage tool
