@@ -5,7 +5,6 @@ A pedagogical **second-hand marketplace** using **Domain-Driven Design (DDD)** a
 ## Prerequisites
 
 - **Go 1.25.3** or higher
-- **Docker** (required for integration tests using testcontainers)
 - **Git**
 
 ## Installation
@@ -41,14 +40,7 @@ brew install go
 
 Download the installer from [https://go.dev/dl/](https://go.dev/dl/) and follow the installation wizard.
 
-### 2. Install Docker
-
-Docker is required for running integration tests with testcontainers (PostgreSQL, Kafka).
-
-- **Linux**: [https://docs.docker.com/engine/install/](https://docs.docker.com/engine/install/)
-- **macOS/Windows**: [https://docs.docker.com/desktop/](https://docs.docker.com/desktop/)
-
-### 3. Install dependencies
+### 2. Install dependencies
 
 ```bash
 go mod download
@@ -103,7 +95,7 @@ go test ./...
 go test -v ./...
 
 # Run tests for a specific package
-go test -v ./internal/search/...
+go test -v ./internal/classified-ad/...
 
 # Run a specific test
 go test -run TestName ./path/to/package/
