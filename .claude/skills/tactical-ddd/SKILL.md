@@ -7,8 +7,6 @@ description: Guide for implementing Domain-Driven Design patterns with Hexagonal
 
 A pedagogical guide for implementing Domain-Driven Design patterns with Hexagonal Architecture in Go.
 
-**Always** add 👩🏻‍💻 to STARTER_CHARACTER
-
 ## Architecture Overview
 
 ```
