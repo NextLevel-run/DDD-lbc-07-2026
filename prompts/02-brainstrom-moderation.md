@@ -1,28 +1,32 @@
+# Objectif
 
-Objectif
-Mettre en place le bounded context moderation et lie avec ClassifiedAd
+Mettre en place le bounded context moderation et le lier avec ClassifiedAd
 
-context
-- on a mappé le métier dans un event storming( dans event-storming.md et event-storming.jpg)
-- on a deja une premiere version d'annonce fonctionnelle sans moderation
-  il faut 
-  - creer le bounded context moderation
-  - creer les Aggregat Moderator, ModerationTask et ClassifiedAdHistory
-    - Moderator(uuid, login, password, et fullname
-    - ModerationTask(uuid, creationtime, classifiedAdId, ModeratorId(assume quand la tache est claim par un moderateur; Methodes : claim qui lock la tache pour un moderateur et complete qui supprime la task de la queue)
-    - ClassifiedAd history: Audit trail des status de la classified ad et des actions de moderation
-      - On doit pouvoir acceder facilement le status en cours de la classifiedAd   
-      - On doit pouvoir accept, reject (avec reason pour des question de statistique interne) ou challenge (avec reason pour indiquer au seller la raison de son challenge) la classifiedAd quand elle est submited ou edited
--Ajouter un etat submited sur l annonce
--generer une moderation task
--avoir une moderation history
--envoyer des events public quand une annonce est rdy to mode 
-- Approve, Rejected, Challenged comme status
-- Rejected = delete
-- Challeged = edit
-- Approved = Publish
-- Ajouter edit dans cad
-- cad history 
-- Ajouter d un life cycle expired, archived, rejected, challenged, approved, edited
-- Ajouter une recherche dans histo
-- valeur email, counter view, counter offer, reason
+## Context
+- On a mappé le métier dans un event storming (dans event-storming.md et event-storming.jpg)
+- On a déjà une première version d'annonce fonctionnelle sans modération
+
+### Il faut
+- Créer le bounded context moderation
+- Créer les Agregats:
+  - **Moderator**: uuid, login, password, fullname
+  - **ModerationTask**: uuid, creationtime, classifiedAdId, ModeratorId
+    - Assumé quand la tâche est claimée par un modérateur
+    - Méthodes : claim (lock la tâche pour un modérateur), complete (supprime la task de la queue)
+  - **ClassifiedAdHistory**: Audit trail des statuts de la classified ad et des actions de modération
+    - Accès facile au statut courant de la classifiedAd
+    - Actions possibles: accept, reject (avec reason), challenge (avec reason pour le seller)
+    - Applicable quand la classified ad est submited ou edited
+- Créer un système d'événements publics partagés entre les différents Bounded Contexts
+  - Utiliser un folder `internal/shared` pour partager les formats des événements publics
+    - avoir une infra dédié pour le bus public
+  - Produire les événements publics en consommant les événements privés
+  - Tous les events de changement de statut de l'annonce sont public et consomme par Moderation pour pouvoir les afficher dans ClassifiedAdHistory
+  - Le events de Moderation (Approved, Rejected et Challenged) en event public afin que le Bounded Context ClassifiedAd les consomme
+- Ajouter un état "submitted" sur l'annonce et l'event lié
+- **Statuts**: Approved, Rejected, Challenged
+  - Rejected → delete
+  - Challenged → edit
+  - Approved → Publish
+
+Interview moi jusqu'à ce qu'il n'y ait plus d'ambiguité fonctionnelle.
