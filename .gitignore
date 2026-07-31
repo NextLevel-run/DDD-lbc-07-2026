@@ -5,6 +5,9 @@
 *.so
 *.dylib
 
+# Claude
+.claude/worktrees
+
 # Binaires Go compilés
 bin/
 /api
