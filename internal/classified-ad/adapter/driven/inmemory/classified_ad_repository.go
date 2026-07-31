@@ -60,14 +60,14 @@ func (r *InMemoryClassifiedAdRepository) FindExpirable(now time.Time) ([]*domain
 	return result, nil
 }
 
-// Search returns online ads matching the given criteria, sorted and paginated.
+// Search returns ads matching the given criteria, sorted and paginated.
 func (r *InMemoryClassifiedAdRepository) Search(criteria domain.SearchCriteria) ([]*domain.ClassifiedAd, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	var result []*domain.ClassifiedAd
 	for _, ad := range r.ads {
-		if !ad.IsOnline() {
+		if criteria.OnlineOnly && !ad.IsOnline() {
 			continue
 		}
 		if !matchesCriteria(ad, criteria) {

@@ -25,6 +25,7 @@ type SearchCriteria struct {
 	MinPriceInCents *int64
 	MaxPriceInCents *int64
 	Keywords        *string // matches Title or Description, case-insensitive substring
+	OnlineOnly      bool    // when true, excludes ads for which IsOnline() is false
 	SortBy          string  // "date_desc" (default), "date_asc", "price_asc", "price_desc"
 	Limit           int
 	Offset          int
@@ -35,5 +36,7 @@ type ClassifiedAdRepository interface {
 	Save(ad *ClassifiedAd) error
 	FindByID(id uuid.UUID) (*ClassifiedAd, error)
 	FindExpirable(now time.Time) ([]*ClassifiedAd, error)
+	// Search returns ads matching criteria, sorted and paginated. It MUST honor
+	// criteria.OnlineOnly rather than assuming any implicit visibility rule.
 	Search(criteria SearchCriteria) ([]*ClassifiedAd, error)
 }

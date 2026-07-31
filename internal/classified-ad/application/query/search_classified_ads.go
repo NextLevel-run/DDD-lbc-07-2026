@@ -58,9 +58,12 @@ func BuildSearchClassifiedAdsQuery(repo domain.ClassifiedAdRepository) SearchCla
 			Keywords:        args.Keywords,
 			MinPriceInCents: args.MinPriceInCents,
 			MaxPriceInCents: args.MaxPriceInCents,
-			SortBy:          sortBy,
-			Limit:           limit,
-			Offset:          offset,
+			// OnlineOnly is a fixed business rule of this query, not a client-provided
+			// filter: search must never surface deleted or expired ads.
+			OnlineOnly: true,
+			SortBy:     sortBy,
+			Limit:      limit,
+			Offset:     offset,
 		}
 
 		if args.Category != nil {

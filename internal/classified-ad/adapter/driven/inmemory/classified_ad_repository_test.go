@@ -187,10 +187,18 @@ func TestInMemoryClassifiedAdRepository_Search_OnlineOnly(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, repo.Save(deletedAd))
 
-	results, err := repo.Search(domain.SearchCriteria{})
-	require.NoError(t, err)
-	require.Len(t, results, 1)
-	assert.Equal(t, onlineAd.ID(), results[0].ID())
+	t.Run("OnlineOnly true excludes non-online ads", func(t *testing.T) {
+		results, err := repo.Search(domain.SearchCriteria{OnlineOnly: true})
+		require.NoError(t, err)
+		require.Len(t, results, 1)
+		assert.Equal(t, onlineAd.ID(), results[0].ID())
+	})
+
+	t.Run("OnlineOnly false includes non-online ads", func(t *testing.T) {
+		results, err := repo.Search(domain.SearchCriteria{OnlineOnly: false})
+		require.NoError(t, err)
+		require.Len(t, results, 2)
+	})
 }
 
 func TestInMemoryClassifiedAdRepository_Search_ByCategory(t *testing.T) {

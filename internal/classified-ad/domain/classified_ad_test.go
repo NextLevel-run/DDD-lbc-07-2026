@@ -200,6 +200,30 @@ func TestClassifiedAd_IsOnlineCanReceiveOfferIsExpirable(t *testing.T) {
 	})
 }
 
+func TestClassifiedAd_IsOnlineIsRecomputedOnEveryMutation(t *testing.T) {
+	now := time.Now()
+
+	t.Run("isOnline flips to false exactly when Delete succeeds", func(t *testing.T) {
+		ad := newValidClassifiedAd(t, now)
+		require.True(t, ad.IsOnline())
+
+		ok, err := ad.Delete(ad.Seller().Email(), validPlainPassword, domain.DeleteReasonSold, fakePasswordHasher{}, now)
+		require.NoError(t, err)
+		require.True(t, ok)
+
+		assert.False(t, ad.IsOnline(), "isOnline must be recomputed as false once Delete transitions the ad to Deleted")
+	})
+
+	t.Run("isOnline flips to false exactly when Expire succeeds", func(t *testing.T) {
+		ad := newValidClassifiedAd(t, now)
+		require.True(t, ad.IsOnline())
+
+		require.True(t, ad.Expire(now.Add(domain.AdLifetime)))
+
+		assert.False(t, ad.IsOnline(), "isOnline must be recomputed as false once Expire transitions the ad to Expired")
+	})
+}
+
 func TestClassifiedAd_Expire(t *testing.T) {
 	now := time.Now()
 
@@ -212,6 +236,7 @@ func TestClassifiedAd_Expire(t *testing.T) {
 		assert.False(t, changed)
 		assert.Equal(t, domain.StatusPublished, ad.Status())
 		assert.Nil(t, ad.ExpiredAt())
+		assert.True(t, ad.IsOnline())
 	})
 
 	t.Run("expiring at or after the threshold transitions the ad", func(t *testing.T) {
@@ -236,6 +261,7 @@ func TestClassifiedAd_Expire(t *testing.T) {
 
 		assert.False(t, changed)
 		assert.Equal(t, atThreshold, *ad.ExpiredAt())
+		assert.False(t, ad.IsOnline())
 	})
 
 	t.Run("expiring a deleted ad is a no-op", func(t *testing.T) {
@@ -249,6 +275,7 @@ func TestClassifiedAd_Expire(t *testing.T) {
 		assert.False(t, changed)
 		assert.Equal(t, domain.StatusDeleted, ad.Status())
 		assert.Nil(t, ad.ExpiredAt())
+		assert.False(t, ad.IsOnline())
 	})
 }
 
@@ -280,6 +307,7 @@ func TestClassifiedAd_Delete(t *testing.T) {
 		assert.ErrorIs(t, err, domain.ErrInvalidCredentials)
 		assert.Equal(t, domain.StatusPublished, ad.Status())
 		assert.Nil(t, ad.DeletedAt())
+		assert.True(t, ad.IsOnline())
 	})
 
 	t.Run("wrong password is rejected with no mutation", func(t *testing.T) {
@@ -291,6 +319,7 @@ func TestClassifiedAd_Delete(t *testing.T) {
 		assert.ErrorIs(t, err, domain.ErrInvalidCredentials)
 		assert.Equal(t, domain.StatusPublished, ad.Status())
 		assert.Nil(t, ad.DeletedAt())
+		assert.True(t, ad.IsOnline())
 	})
 
 	t.Run("deleting twice is idempotent: second call returns false, nil and does not change state", func(t *testing.T) {

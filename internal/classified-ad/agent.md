@@ -12,7 +12,7 @@
 ## Ubiquitous Language
 
 ### **ClassifiedAd**
-The aggregate root representing a second-hand item listed for sale by a Seller. It carries a title, description, price, image URLs, category, location, submission date and a lifecycle Status. A ClassifiedAd is created already published (`NewClassifiedAd` immediately sets `StatusPublished`) — there is no draft state.
+The aggregate root representing a second-hand item listed for sale by a Seller. It carries a title, description, price, image URLs, category, location, submission date and a lifecycle Status. A ClassifiedAd is created already published (`NewClassifiedAd` immediately sets `StatusPublished`) — there is no draft state. `isOnline` is a stored field mirroring `status == published`, recomputed by the internal `setStatus` helper on every transition (`NewClassifiedAd`, `Delete`, `Expire`) so it can never drift from `status`.
 
 ### **Seller**
 An internal entity embedded in ClassifiedAd, identifying the person selling the item: an `Email`, a `pseudo` (display name, 1-30 chars) and a `Password` (hashed). The seller's email and password are required to authenticate deletion requests.
@@ -42,7 +42,7 @@ A value object pairing a 5-digit `zipCode` with a `cityName`, used both to descr
 A value object wrapping a monetary amount in cents (`amountInCents`), always non-negative.
 
 ### **SearchCriteria**
-The filter/sort/pagination contract used by the `Search` repository port: optional Category, ZipCode, CityName, price range, free-text Keywords (matched against title/description), a `SortBy` mode (`date_desc` default, `date_asc`, `price_asc`, `price_desc`), and `Limit`/`Offset` pagination. Search only ever returns `published` ads.
+The filter/sort/pagination contract used by the `Search` repository port: optional Category, ZipCode, CityName, price range, free-text Keywords (matched against title/description), an `OnlineOnly` flag, a `SortBy` mode (`date_desc` default, `date_asc`, `price_asc`, `price_desc`), and `Limit`/`Offset` pagination. `OnlineOnly` is set to `true` by `SearchClassifiedAdsQuery` itself — it is not a caller-supplied filter (not in `SearchClassifiedAdsQueryArgs`, not an HTTP query param) — so search only ever returns `published` ads. Any `ClassifiedAdRepository` implementation must honor `OnlineOnly` rather than hardcode its own visibility rule.
 
 ---
 
@@ -57,7 +57,7 @@ The filter/sort/pagination contract used by the `Search` repository port: option
 
 ### Search Classified Ads
 1. A visitor queries `GET /classified-ads` with optional filters (category, zip, city, keywords, price range), sort and pagination.
-2. `SearchClassifiedAdsQuery` builds a `SearchCriteria` and delegates to the repository, which only matches `published` ads.
+2. `SearchClassifiedAdsQuery` builds a `SearchCriteria` with `OnlineOnly: true` and delegates to the repository, which excludes non-`published` ads accordingly.
 3. A paginated list of `ClassifiedAdListItemView` (summary fields + first image) is returned.
 
 ### View a Classified Ad

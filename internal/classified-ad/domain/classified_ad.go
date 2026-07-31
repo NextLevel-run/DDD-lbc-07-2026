@@ -17,6 +17,7 @@ type ClassifiedAd struct {
 	price          Price
 	seller         Seller
 	status         Status
+	isOnline       bool
 	imageURLs      []string
 	submissionDate SubmissionDate
 	publishedAt    time.Time
@@ -63,19 +64,20 @@ func NewClassifiedAd(
 		}
 	}
 
-	return &ClassifiedAd{
+	ad := &ClassifiedAd{
 		id:             uuid.New(),
 		title:          title,
 		description:    description,
 		price:          price,
 		seller:         seller,
-		status:         StatusPublished,
 		imageURLs:      imageURLs,
 		submissionDate: submissionDate,
 		publishedAt:    submissionDate.Time(),
 		category:       category,
 		location:       location,
-	}, nil
+	}
+	ad.setStatus(StatusPublished)
+	return ad, nil
 }
 
 // ID returns the aggregate identifier.
@@ -149,8 +151,17 @@ func (a *ClassifiedAd) ExpiredAt() *time.Time {
 }
 
 // IsOnline returns true if the ad is currently published and visible.
+// It reflects the isOnline attribute, kept in sync with status by setStatus
+// on every aggregate mutation.
 func (a *ClassifiedAd) IsOnline() bool {
-	return a.status == StatusPublished
+	return a.isOnline
+}
+
+// setStatus transitions the aggregate to newStatus, recomputing isOnline
+// from it so the two fields can never drift apart.
+func (a *ClassifiedAd) setStatus(newStatus Status) {
+	a.status = newStatus
+	a.isOnline = newStatus == StatusPublished
 }
 
 // CanReceiveOffer returns true if the ad can currently receive buyer offers.
@@ -168,7 +179,7 @@ func (a *ClassifiedAd) Expire(now time.Time) bool {
 	if !a.IsExpirable(now) {
 		return false
 	}
-	a.status = StatusExpired
+	a.setStatus(StatusExpired)
 	a.expiredAt = &now
 	return true
 }
@@ -182,7 +193,7 @@ func (a *ClassifiedAd) Delete(email Email, password string, reason DeleteReason,
 	if email.String() != a.seller.Email().String() || !a.seller.Password().Matches(password, hasher) {
 		return false, ErrInvalidCredentials
 	}
-	a.status = StatusDeleted
+	a.setStatus(StatusDeleted)
 	a.deletedAt = &now
 	a.deleteReason = reason
 	return true, nil

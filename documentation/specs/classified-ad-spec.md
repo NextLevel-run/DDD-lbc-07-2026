@@ -32,7 +32,8 @@
 | Suppression répétée | **Idempotente**, aucun second event |
 | Images | **URLs fournies au submit** (pas de commande Upload, pas de port de stockage) |
 | Prix | **≥ 0** (0 = don), en **centimes**, EUR |
-| Visibilité | `status` = source de vérité, `IsOnline()` dérivé ; détail d'une annonce hors-ligne → **404** |
+| Visibilité | `status` = source de vérité ; `isOnline` **stocké sur l'agrégat**, recalculé par `setStatus` à chaque mutation (jamais dérivé à la lecture, jamais fourni en entrée) ; détail d'une annonce hors-ligne → **404** |
+| Filtrage recherche | `SearchCriteria.OnlineOnly` — critère explicite du port `ClassifiedAdRepository.Search`, fixé à `true` par `SearchClassifiedAdsQuery` (règle métier fixe, **non exposée** au client HTTP) |
 | Recherche | catégorie + localisation + fourchette de prix + mots-clés, tri configurable + pagination |
 | ID | **UUID généré dans le constructeur du domaine** |
 | Emails | **Consumers** abonnés aux events + port `pkg/mailer.Mailer` |
@@ -55,6 +56,7 @@ Package : `internal/classified-ad/domain`, fichier `classified_ad.go`.
 | `price` | `Price` (VO) | ≥ 0, en centimes, devise EUR |
 | `seller` | `Seller` (entité interne) | voir 3.3 |
 | `status` | `Status` (enum) | `Published` \| `Deleted` \| `Expired` |
+| `isOnline` | `bool` | recalculé par `setStatus` à chaque transition de `status` (jamais fourni ni dérivé à la lecture) ; `true` ⇔ `status == Published` |
 | `imageURLs` | `[]string` | **0 à 10**, chaque URL non vide |
 | `submissionDate` | `SubmissionDate` (VO) | date de dépôt |
 | `publishedAt` | `time.Time` | égal à la date de dépôt dans cette itération (pas de modération) |
@@ -77,8 +79,11 @@ NewClassifiedAd()
 ```
 
 - `Published` est l'**état initial** : le dépôt publie immédiatement.
-- `IsOnline() bool` ⇔ `status == Published`. C'est ce prédicat qui pilote la visibilité
-  en recherche et en consultation.
+- `IsOnline() bool` retourne le champ stocké `isOnline`, tenu synchronisé avec `status`
+  par le helper interne `setStatus(newStatus)` — point de passage unique pour toute
+  transition (`NewClassifiedAd`, `Delete`, `Expire`), afin qu'aucune mutation ne puisse
+  faire dériver `isOnline` de `status`. C'est ce prédicat qui pilote la visibilité en
+  recherche et en consultation.
 - `Expired` reste supprimable par le vendeur.
 - `Deleted` est terminal.
 
@@ -111,14 +116,32 @@ Toute autre valeur → `ErrInvalidCategory`.
 
 | Méthode | Règles |
 |---|---|
-| `NewClassifiedAd(...)` | valide tous les champs, génère l'UUID, `status = Published`, `publishedAt = submissionDate` |
-| `IsOnline() bool` | `status == Published` |
-| `Delete(email, password, reason, hasher, now)` | vérifie que l'email correspond au vendeur **et** que le password matche le hash → sinon `ErrInvalidCredentials`. Si déjà `Deleted` : **no-op idempotent** (le retour doit permettre à la commande de savoir qu'aucun event ne doit être émis). Sinon → `Deleted` + `deletedAt` + `deleteReason` |
-| `Expire(now)` | no-op si non `Published` ; sinon si `now >= publishedAt + 90j` → `Expired` + `expiredAt` |
+| `NewClassifiedAd(...)` | valide tous les champs, génère l'UUID, `setStatus(Published)`, `publishedAt = submissionDate` |
+| `IsOnline() bool` | retourne le champ stocké `isOnline` (voir 3.2) |
+| `setStatus(newStatus)` *(privé)* | assigne `status` **et** recalcule `isOnline = (newStatus == Published)` — seul point d'écriture de ces deux champs |
+| `Delete(email, password, reason, hasher, now)` | vérifie que l'email correspond au vendeur **et** que le password matche le hash → sinon `ErrInvalidCredentials`. Si déjà `Deleted` : **no-op idempotent** (le retour doit permettre à la commande de savoir qu'aucun event ne doit être émis). Sinon → `setStatus(Deleted)` + `deletedAt` + `deleteReason` |
+| `Expire(now)` | no-op si non `Published` ; sinon si `now >= publishedAt + 90j` → `setStatus(Expired)` + `expiredAt` |
 | `IsExpirable(now) bool` | `status == Published && now >= publishedAt + 90j` |
 | `CanReceiveOffer() bool` | `IsOnline()` |
 
 **Constante domaine** : `AdLifetime = 90 * 24 * time.Hour`.
+
+### 3.5 Ports (`domain/repository.go`)
+
+**`PasswordHasher`** — `Hash(plain string) (string, error)`, `Compare(hash, plain string) error`.
+
+**`Clock`** — `Now() time.Time`.
+
+**`ClassifiedAdRepository`** — port de persistance :
+`Save(ad) error`, `FindByID(id) (*ClassifiedAd, error)`, `FindExpirable(now) ([]*ClassifiedAd, error)`,
+`Search(criteria SearchCriteria) ([]*ClassifiedAd, error)`.
+`Search` **doit** honorer `criteria.OnlineOnly` plutôt que d'imposer sa propre règle de
+visibilité implicite — c'est le contrat du port, pas un détail de tel ou tel adapter.
+
+**`SearchCriteria`** : `Category *Category`, `ZipCode *string`, `CityName *string`,
+`MinPriceInCents *int64`, `MaxPriceInCents *int64`, `Keywords *string`,
+`OnlineOnly bool` (exclut les annonces pour lesquelles `IsOnline()` est faux),
+`SortBy string`, `Limit int`, `Offset int`.
 
 ### 3.6 Erreurs du domaine
 
@@ -190,6 +213,12 @@ SubmissionDate`). **Jamais d'entité domaine exposée.**
 
 Défauts : `SortBy = date_desc`, `Limit = 20`, `Offset = 0`.
 
+`domain.SearchCriteria.OnlineOnly` est **fixé à `true` par la query elle-même**, pas par
+l'appelant : ce n'est ni un champ de `SearchClassifiedAdsQueryArgs`, ni un query param HTTP.
+C'est une règle métier fixe ("la recherche ne montre jamais une annonce hors ligne"),
+portée par le contrat du port `ClassifiedAdRepository.Search` (voir 3.5) plutôt que
+laissée à l'implémentation d'un adapter donné.
+
 ### 4.6 `GetClassifiedAdQuery` — `application/query/get_classified_ad.go`
 
 Par ID. Retourne `ClassifiedAdView` (`ID, Title, Description, PriceInCents, Category,
@@ -203,7 +232,7 @@ vendeur**. Si l'annonce n'est pas online → `ErrClassifiedAdNotFound` (⇒ 404)
 ### 5.1 Driven — `adapter/driven/`
 
 - `inmemory/classified_ad_repository.go` : map protégée par mutex, implémente les
-  4 méthodes du port, filtrage/tri/pagination en mémoire.
+  4 méthodes du port, filtrage (dont `criteria.OnlineOnly`)/tri/pagination en mémoire.
 - `bcrypt/password_hasher.go` : implémente `PasswordHasher` (`golang.org/x/crypto/bcrypt`,
   déjà dans `go.mod`).
 - `clock/system_clock.go` : `Clock` réel ; un `FixedClock` de test côté tests.

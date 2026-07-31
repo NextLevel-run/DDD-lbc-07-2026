@@ -58,7 +58,7 @@ func (r *fakeClassifiedAdRepository) Search(criteria domain.SearchCriteria) ([]*
 
 	var result []*domain.ClassifiedAd
 	for _, ad := range r.ads {
-		if !ad.IsOnline() {
+		if criteria.OnlineOnly && !ad.IsOnline() {
 			continue
 		}
 		if criteria.Category != nil && ad.Category() != *criteria.Category {
