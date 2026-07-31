@@ -1,0 +1,392 @@
+
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ── Light theme (default) ──────────────────────────────────────────────── */
+/*
+  Variable mapping (light):
+  --sea-ink          near-black body text          gray-900  #111827
+  --sea-ink-soft     muted/secondary text          gray-500  #6b7280
+  --lagoon           light accent tint             orange-200 #fed7aa
+  --lagoon-deep      primary accent (links, CTAs)  orange-600 #ea580c
+  --palm             unused tint (kept for compat) orange-800 #9a3412
+  --sand             subtle surface tint           gray-100  #f3f4f6
+  --foam             very light surface tint       gray-50   #f9fafb
+  --surface          card/panel background         white 0.95
+  --surface-strong   card/panel background strong  white
+  --line             border / divider              gray-200  rgba(229,231,235)
+  --inset-glint      inner border highlight        white 0.6 (subtle)
+  --kicker           small uppercase label         orange-700 #c2410c
+  --bg-base          page background               gray-50   #f9fafb
+  --header-bg        sticky header background      white 0.92
+  --chip-bg          pill/badge bg                 white 0.85
+  --chip-line        pill/badge border             gray-200
+  --link-bg-hover    link hover bg                 gray-100
+  --hero-a           hero gradient stop A          orange-100/40
+  --hero-b           hero gradient stop B          orange-50/30
+*/
+
+:root {
+  --sea-ink: #111827;
+  --sea-ink-soft: #6b7280;
+  --lagoon: #fed7aa;
+  --lagoon-deep: #ea580c;
+  --palm: #9a3412;
+  --sand: #f3f4f6;
+  --foam: #f9fafb;
+  --surface: rgba(255, 255, 255, 0.95);
+  --surface-strong: rgba(255, 255, 255, 1);
+  --line: rgba(229, 231, 235, 1);
+  --inset-glint: rgba(255, 255, 255, 0.6);
+  --kicker: #c2410c;
+  --bg-base: #f9fafb;
+  --header-bg: rgba(255, 255, 255, 0.92);
+  --chip-bg: rgba(255, 255, 255, 0.85);
+  --chip-line: rgba(229, 231, 235, 1);
+  --link-bg-hover: rgba(243, 244, 246, 1);
+  --hero-a: rgba(253, 186, 116, 0.3);
+  --hero-b: rgba(254, 215, 170, 0.2);
+}
+
+/* ── Dark theme (explicit data-theme="dark") ────────────────────────────── */
+/*
+  Variable mapping (dark):
+  --sea-ink          near-white body text          gray-100  #f3f4f6
+  --sea-ink-soft     muted/secondary text          gray-400  #9ca3af
+  --lagoon           dark accent tint              orange-900 #431407
+  --lagoon-deep      primary accent (links, CTAs)  orange-400 #fb923c
+  --palm             unused tint (kept for compat) orange-300 #fdba74
+  --sand             dark subtle surface           gray-900  #111827
+  --foam             dark very subtle surface      gray-950  #030712
+  --surface          card/panel background         gray-800 0.9
+  --surface-strong   card/panel background strong  gray-800
+  --line             border / divider              gray-700  rgba(55,65,81)
+  --inset-glint      inner border highlight        white 0.06
+  --kicker           small uppercase label         orange-300 #fdba74
+  --bg-base          page background               gray-950  #030712
+  --header-bg        sticky header background      gray-900 0.9
+  --chip-bg          pill/badge bg                 gray-800 0.9
+  --chip-line        pill/badge border             gray-700
+  --link-bg-hover    link hover bg                 gray-800
+  --hero-a           hero gradient stop A          orange-900/25
+  --hero-b           hero gradient stop B          orange-950/20
+*/
+
+:root[data-theme="dark"] {
+  --sea-ink: #f3f4f6;
+  --sea-ink-soft: #9ca3af;
+  --lagoon: #431407;
+  --lagoon-deep: #fb923c;
+  --palm: #fdba74;
+  --sand: #111827;
+  --foam: #030712;
+  --surface: rgba(31, 41, 55, 0.9);
+  --surface-strong: rgba(31, 41, 55, 1);
+  --line: rgba(55, 65, 81, 1);
+  --inset-glint: rgba(255, 255, 255, 0.06);
+  --kicker: #fdba74;
+  --bg-base: #030712;
+  --header-bg: rgba(17, 24, 39, 0.9);
+  --chip-bg: rgba(31, 41, 55, 0.9);
+  --chip-line: rgba(55, 65, 81, 1);
+  --link-bg-hover: rgba(31, 41, 55, 1);
+  --hero-a: rgba(124, 45, 18, 0.25);
+  --hero-b: rgba(67, 20, 7, 0.2);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --sea-ink: #f3f4f6;
+    --sea-ink-soft: #9ca3af;
+    --lagoon: #431407;
+    --lagoon-deep: #fb923c;
+    --palm: #fdba74;
+    --sand: #111827;
+    --foam: #030712;
+    --surface: rgba(31, 41, 55, 0.9);
+    --surface-strong: rgba(31, 41, 55, 1);
+    --line: rgba(55, 65, 81, 1);
+    --inset-glint: rgba(255, 255, 255, 0.06);
+    --kicker: #fdba74;
+    --bg-base: #030712;
+    --header-bg: rgba(17, 24, 39, 0.9);
+    --chip-bg: rgba(31, 41, 55, 0.9);
+    --chip-line: rgba(55, 65, 81, 1);
+    --link-bg-hover: rgba(31, 41, 55, 1);
+    --hero-a: rgba(124, 45, 18, 0.25);
+    --hero-b: rgba(67, 20, 7, 0.2);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--sea-ink);
+  font-family: var(--font-sans);
+  background-color: var(--bg-base);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: var(--lagoon-deep);
+  text-decoration-color: rgba(234, 88, 12, 0.4);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  color: var(--palm);
+}
+
+code {
+  font-size: 0.9em;
+  border: 1px solid var(--line);
+  background: var(--surface-strong);
+  border-radius: 4px;
+  padding: 2px 7px;
+}
+
+pre code {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+  color: inherit;
+}
+
+.page-wrap {
+  width: min(1080px, calc(100% - 2rem));
+  margin-inline: auto;
+}
+
+.display-title {
+  font-family: Georgia, serif;
+}
+
+.island-shell {
+  border: 1px solid var(--line);
+  background: var(--surface-strong);
+}
+
+.demo-page {
+  width: min(1080px, calc(100% - 2rem));
+  margin-inline: auto;
+  padding-block: clamp(2.25rem, 6vw, 4.5rem);
+  color: var(--sea-ink);
+}
+
+.demo-page-wide {
+  width: min(1280px, calc(100% - 2rem));
+}
+
+.demo-center {
+  min-height: calc(100vh - 13rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.demo-panel,
+.demo-card {
+  border: 1px solid var(--line);
+  background: var(--surface-strong);
+}
+
+.demo-panel {
+  border-radius: 0.5rem;
+  padding: clamp(1.25rem, 4vw, 2rem);
+}
+
+.demo-card {
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.demo-title {
+  margin: 0;
+  color: var(--sea-ink);
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.demo-section-title {
+  margin: 0;
+  color: var(--sea-ink);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.demo-muted {
+  color: var(--sea-ink-soft);
+}
+
+.demo-input,
+.demo-select,
+.demo-textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 0.375rem;
+  background: var(--surface-strong);
+  color: var(--sea-ink);
+  outline: none;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.demo-input,
+.demo-select {
+  padding: 0.7rem 0.9rem;
+}
+
+.demo-textarea {
+  min-height: 7rem;
+  padding: 0.8rem 0.9rem;
+  resize: vertical;
+}
+
+.demo-input:focus,
+.demo-select:focus,
+.demo-textarea:focus {
+  border-color: var(--lagoon-deep);
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
+}
+
+.demo-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: none;
+  border-radius: 0.375rem;
+  background: var(--lagoon-deep);
+  color: #ffffff;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 180ms ease, opacity 180ms ease;
+}
+
+.demo-button:hover {
+  background: var(--palm);
+}
+
+.demo-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.demo-button-secondary {
+  background: var(--surface-strong);
+  color: var(--sea-ink);
+  border: 1px solid var(--line);
+}
+
+.demo-button-secondary:hover {
+  background: var(--link-bg-hover);
+}
+
+.demo-alert {
+  border: 1px solid rgba(193, 126, 42, 0.3);
+  border-radius: 0.375rem;
+  background: rgba(193, 126, 42, 0.1);
+  color: var(--sea-ink);
+  padding: 1rem;
+}
+
+.demo-alert-danger {
+  border-color: rgba(196, 71, 71, 0.3);
+  background: rgba(196, 71, 71, 0.1);
+}
+
+.demo-table-shell {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--surface-strong);
+}
+
+button,
+.island-shell,
+a {
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease,
+    transform 180ms ease;
+}
+
+.island-kicker {
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: 0.69rem;
+  color: var(--kicker);
+}
+
+.nav-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  color: var(--sea-ink-soft);
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -6px;
+  width: 100%;
+  height: 2px;
+  transform: scaleX(0);
+  transform-origin: left;
+  background: var(--lagoon-deep);
+  transition: transform 170ms ease;
+}
+
+.nav-link:hover,
+.nav-link.is-active {
+  color: var(--sea-ink);
+}
+
+.nav-link:hover::after,
+.nav-link.is-active::after {
+  transform: scaleX(1);
+}
+
+@media (max-width: 640px) {
+  .nav-link::after {
+    bottom: -4px;
+  }
+}
+
+.rise-in {
+  animation: rise-in 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
