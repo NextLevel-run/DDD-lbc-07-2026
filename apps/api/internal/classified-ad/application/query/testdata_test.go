@@ -56,8 +56,9 @@ func defaultTestAdParams() testAdParams {
 	}
 }
 
-// buildTestAd builds a valid, published ClassifiedAd from the given params, without saving it.
-func buildTestAd(t *testing.T, params testAdParams) *domain.ClassifiedAd {
+// buildSubmittedTestAd builds a valid ClassifiedAd still awaiting moderation
+// (StatusSubmitted) from the given params, without saving it.
+func buildSubmittedTestAd(t *testing.T, params testAdParams) *domain.ClassifiedAd {
 	t.Helper()
 
 	email, err := domain.NewEmail(params.SellerEmail)
@@ -92,11 +93,33 @@ func buildTestAd(t *testing.T, params testAdParams) *domain.ClassifiedAd {
 	return ad
 }
 
+// buildTestAd builds a valid, published ClassifiedAd from the given params,
+// without saving it. The ad goes through the full moderation happy path
+// (submitted → approved → published), with publishedAt set to SubmissionDate.
+func buildTestAd(t *testing.T, params testAdParams) *domain.ClassifiedAd {
+	t.Helper()
+
+	ad := buildSubmittedTestAd(t, params)
+	require.NoError(t, ad.Approve())
+	require.NoError(t, ad.Publish(params.SubmissionDate))
+	return ad
+}
+
 // saveTestAd builds and saves a valid, published ClassifiedAd, returning it.
 func saveTestAd(t *testing.T, repo domain.ClassifiedAdRepository, params testAdParams) *domain.ClassifiedAd {
 	t.Helper()
 
 	ad := buildTestAd(t, params)
+	require.NoError(t, repo.Save(ad))
+	return ad
+}
+
+// saveSubmittedTestAd builds and saves a valid ClassifiedAd still awaiting
+// moderation (StatusSubmitted), returning it.
+func saveSubmittedTestAd(t *testing.T, repo domain.ClassifiedAdRepository, params testAdParams) *domain.ClassifiedAd {
+	t.Helper()
+
+	ad := buildSubmittedTestAd(t, params)
 	require.NoError(t, repo.Save(ad))
 	return ad
 }

@@ -28,7 +28,9 @@ type ClassifiedAd struct {
 	expiredAt      *time.Time
 }
 
-// NewClassifiedAd validates and builds a new ClassifiedAd, published immediately.
+// NewClassifiedAd validates and builds a new ClassifiedAd, submitted for moderation.
+// The ad starts in StatusSubmitted with publishedAt unset — it is only set when
+// the ad transitions from approved to published.
 func NewClassifiedAd(
 	title string,
 	description string,
@@ -39,29 +41,9 @@ func NewClassifiedAd(
 	location Location,
 	submissionDate SubmissionDate,
 ) (*ClassifiedAd, error) {
-	if title == "" {
-		return nil, ErrEmptyTitle
-	}
-	if len(title) > 100 {
-		return nil, ErrTitleTooLong
-	}
-	if description == "" {
-		return nil, ErrEmptyDescription
-	}
-	if len(description) > 4000 {
-		return nil, ErrDescriptionTooLong
-	}
-	price, err := NewPrice(priceInCents)
+	price, err := validateContent(title, description, priceInCents, imageURLs)
 	if err != nil {
 		return nil, err
-	}
-	if len(imageURLs) > 10 {
-		return nil, ErrTooManyImages
-	}
-	for _, url := range imageURLs {
-		if url == "" {
-			return nil, ErrEmptyImageURL
-		}
 	}
 
 	ad := &ClassifiedAd{
@@ -72,12 +54,42 @@ func NewClassifiedAd(
 		seller:         seller,
 		imageURLs:      imageURLs,
 		submissionDate: submissionDate,
-		publishedAt:    submissionDate.Time(),
 		category:       category,
 		location:       location,
 	}
-	ad.setStatus(StatusPublished)
+	ad.setStatus(StatusSubmitted)
 	return ad, nil
+}
+
+// validateContent checks the editable content of a classified ad (title,
+// description, price, images) and returns the validated Price. It is shared
+// by NewClassifiedAd and Edit so both enforce the same business rules.
+func validateContent(title, description string, priceInCents int64, imageURLs []string) (Price, error) {
+	if title == "" {
+		return Price{}, ErrEmptyTitle
+	}
+	if len(title) > 100 {
+		return Price{}, ErrTitleTooLong
+	}
+	if description == "" {
+		return Price{}, ErrEmptyDescription
+	}
+	if len(description) > 4000 {
+		return Price{}, ErrDescriptionTooLong
+	}
+	price, err := NewPrice(priceInCents)
+	if err != nil {
+		return Price{}, err
+	}
+	if len(imageURLs) > 10 {
+		return Price{}, ErrTooManyImages
+	}
+	for _, url := range imageURLs {
+		if url == "" {
+			return Price{}, ErrEmptyImageURL
+		}
+	}
+	return price, nil
 }
 
 // ID returns the aggregate identifier.
@@ -120,7 +132,8 @@ func (a *ClassifiedAd) SubmissionDate() SubmissionDate {
 	return a.submissionDate
 }
 
-// PublishedAt returns when the ad was published.
+// PublishedAt returns when the ad was published. It is the zero time until
+// the ad transitions from approved to published.
 func (a *ClassifiedAd) PublishedAt() time.Time {
 	return a.publishedAt
 }
@@ -162,6 +175,93 @@ func (a *ClassifiedAd) IsOnline() bool {
 func (a *ClassifiedAd) setStatus(newStatus Status) {
 	a.status = newStatus
 	a.isOnline = newStatus == StatusPublished
+}
+
+// Approve transitions the ad from StatusSubmitted to StatusApproved after a
+// moderator accepted it. Returns ErrCannotApprove if the ad is not submitted.
+func (a *ClassifiedAd) Approve() error {
+	if a.status != StatusSubmitted {
+		return ErrCannotApprove
+	}
+	a.setStatus(StatusApproved)
+	return nil
+}
+
+// Publish transitions the ad from StatusApproved to StatusPublished, setting
+// publishedAt to now. Returns ErrCannotPublish if the ad is not approved.
+func (a *ClassifiedAd) Publish(now time.Time) error {
+	if a.status != StatusApproved {
+		return ErrCannotPublish
+	}
+	a.setStatus(StatusPublished)
+	a.publishedAt = now
+	return nil
+}
+
+// Reject transitions the ad from StatusSubmitted to StatusRejected after a
+// moderator rejected it. Returns ErrCannotReject if the ad is not submitted.
+// A rejected ad is then automatically deleted via DeleteRejected.
+func (a *ClassifiedAd) Reject() error {
+	if a.status != StatusSubmitted {
+		return ErrCannotReject
+	}
+	a.setStatus(StatusRejected)
+	return nil
+}
+
+// Challenge transitions the ad from StatusSubmitted to StatusChallenged when a
+// moderator asks the seller for corrections. Returns ErrCannotChallenge if the
+// ad is not submitted.
+func (a *ClassifiedAd) Challenge() error {
+	if a.status != StatusSubmitted {
+		return ErrCannotChallenge
+	}
+	a.setStatus(StatusChallenged)
+	return nil
+}
+
+// Edit replaces the editable content of a challenged ad (title, description,
+// price, images, category, location) after validating it with the same rules
+// as NewClassifiedAd, and re-submits the ad (StatusChallenged → StatusSubmitted).
+// Returns ErrCannotEdit if the ad is not challenged; validation errors leave
+// the ad unchanged.
+func (a *ClassifiedAd) Edit(
+	title string,
+	description string,
+	priceInCents int64,
+	imageURLs []string,
+	category Category,
+	location Location,
+) error {
+	if a.status != StatusChallenged {
+		return ErrCannotEdit
+	}
+	price, err := validateContent(title, description, priceInCents, imageURLs)
+	if err != nil {
+		return err
+	}
+	a.title = title
+	a.description = description
+	a.price = price
+	a.imageURLs = imageURLs
+	a.category = category
+	a.location = location
+	a.setStatus(StatusSubmitted)
+	return nil
+}
+
+// DeleteRejected transitions the ad from StatusRejected to StatusDeleted with
+// DeleteReasonRejected. It is the automatic system deletion following Reject —
+// no seller credentials are involved. Returns ErrCannotDeleteRejected if the
+// ad is not rejected.
+func (a *ClassifiedAd) DeleteRejected(now time.Time) error {
+	if a.status != StatusRejected {
+		return ErrCannotDeleteRejected
+	}
+	a.setStatus(StatusDeleted)
+	a.deletedAt = &now
+	a.deleteReason = DeleteReasonRejected
+	return nil
 }
 
 // CanReceiveOffer returns true if the ad can currently receive buyer offers.

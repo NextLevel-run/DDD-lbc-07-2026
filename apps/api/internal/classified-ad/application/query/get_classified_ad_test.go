@@ -112,6 +112,36 @@ func TestGetClassifiedAdQuery_NotFound_DeletedAd(t *testing.T) {
 	require.ErrorIs(t, err, domain.ErrClassifiedAdNotFound)
 }
 
+func TestGetClassifiedAdQuery_NotFound_SubmittedAd(t *testing.T) {
+	// A submitted ad awaiting moderation is not publicly visible.
+
+	// Given
+	setup := setupGetClassifiedAdTest(t)
+	ad := saveSubmittedTestAd(t, setup.repo, defaultTestAdParams())
+
+	// When
+	_, err := setup.query(ad.ID().String())
+
+	// Then
+	require.ErrorIs(t, err, domain.ErrClassifiedAdNotFound)
+}
+
+func TestGetClassifiedAdQuery_NotFound_ChallengedAd(t *testing.T) {
+	// A challenged ad awaiting seller corrections is not publicly visible.
+
+	// Given
+	setup := setupGetClassifiedAdTest(t)
+	ad := saveSubmittedTestAd(t, setup.repo, defaultTestAdParams())
+	require.NoError(t, ad.Challenge())
+	require.NoError(t, setup.repo.Save(ad))
+
+	// When
+	_, err := setup.query(ad.ID().String())
+
+	// Then
+	require.ErrorIs(t, err, domain.ErrClassifiedAdNotFound)
+}
+
 func TestGetClassifiedAdQuery_NotFound_ExpiredAd(t *testing.T) {
 	// Given
 	setup := setupGetClassifiedAdTest(t)

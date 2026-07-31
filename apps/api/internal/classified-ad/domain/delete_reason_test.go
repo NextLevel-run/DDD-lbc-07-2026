@@ -10,7 +10,7 @@ import (
 
 func TestNewDeleteReason(t *testing.T) {
 	t.Run("valid reasons are accepted", func(t *testing.T) {
-		for _, valid := range []string{"sold", "no_more_to_sell", "edit"} {
+		for _, valid := range []string{"sold", "no_more_to_sell", "edit", "rejected"} {
 			r, err := domain.NewDeleteReason(valid)
 			assert.NoError(t, err)
 			assert.Equal(t, domain.DeleteReason(valid), r)

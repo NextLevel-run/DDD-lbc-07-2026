@@ -42,31 +42,14 @@ func setupMakeOfferTest(t *testing.T) *makeOfferTestSetup {
 }
 
 // seedAd creates and persists a valid, published classified ad, returning it.
+// The ad goes through the full moderation happy path (submitted → approved →
+// published), with publishedAt set to submittedAt.
 func seedAd(t *testing.T, repo *fakeClassifiedAdRepository, submittedAt time.Time) *domain.ClassifiedAd {
 	t.Helper()
 
-	email, err := domain.NewEmail("seller@example.com")
-	require.NoError(t, err)
-	password, err := domain.NewPassword("supersecret", fakePasswordHasher{})
-	require.NoError(t, err)
-	seller, err := domain.NewSeller(email, "seller-pseudo", password)
-	require.NoError(t, err)
-	category, err := domain.NewCategory(string(domain.CategoryConsumerGoods))
-	require.NoError(t, err)
-	location, err := domain.NewLocation("75001", "Paris")
-	require.NoError(t, err)
-
-	ad, err := domain.NewClassifiedAd(
-		"Vélo hollandais",
-		"Très bon état, peu servi.",
-		15000,
-		seller,
-		[]string{"http://img/1.jpg"},
-		category,
-		location,
-		domain.NewSubmissionDate(submittedAt),
-	)
-	require.NoError(t, err)
+	ad := newSubmittedAd(t, submittedAt)
+	require.NoError(t, ad.Approve())
+	require.NoError(t, ad.Publish(submittedAt))
 
 	require.NoError(t, repo.Save(ad))
 	return ad
