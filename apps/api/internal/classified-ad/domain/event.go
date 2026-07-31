@@ -29,6 +29,145 @@ func NewClassifiedAdPublishedEventFromClassifiedAd(ad *ClassifiedAd) *Classified
 	}
 }
 
+// ClassifiedAdSubmittedEvent is emitted when a new classified ad is submitted
+// for moderation. It carries the full ad payload so publishers can build the
+// public integration event without any repository access.
+type ClassifiedAdSubmittedEvent struct {
+	AdID         string
+	Title        string
+	Description  string
+	PriceInCents int64
+	ImageURLs    []string
+	Category     string
+	ZipCode      string
+	CityName     string
+	SellerEmail  string
+	SellerPseudo string
+	OccurredAt   time.Time
+}
+
+// EventType returns the event type name.
+func (e *ClassifiedAdSubmittedEvent) EventType() string {
+	return "ClassifiedAdSubmitted"
+}
+
+// NewClassifiedAdSubmittedEventFromClassifiedAd builds a ClassifiedAdSubmittedEvent from a ClassifiedAd.
+func NewClassifiedAdSubmittedEventFromClassifiedAd(ad *ClassifiedAd) *ClassifiedAdSubmittedEvent {
+	return &ClassifiedAdSubmittedEvent{
+		AdID:         ad.ID().String(),
+		Title:        ad.Title(),
+		Description:  ad.Description(),
+		PriceInCents: ad.Price().AmountInCents(),
+		ImageURLs:    ad.ImageURLs(),
+		Category:     string(ad.Category()),
+		ZipCode:      ad.Location().ZipCode(),
+		CityName:     ad.Location().CityName(),
+		SellerEmail:  ad.Seller().Email().String(),
+		SellerPseudo: ad.Seller().Pseudo(),
+		OccurredAt:   ad.SubmissionDate().Time(),
+	}
+}
+
+// ClassifiedAdEditedEvent is emitted when a seller edits a challenged ad,
+// re-submitting it for moderation. It carries the full ad payload so
+// publishers can build the public integration event without any repository
+// access.
+type ClassifiedAdEditedEvent struct {
+	AdID         string
+	Title        string
+	Description  string
+	PriceInCents int64
+	ImageURLs    []string
+	Category     string
+	ZipCode      string
+	CityName     string
+	SellerEmail  string
+	SellerPseudo string
+	OccurredAt   time.Time
+}
+
+// EventType returns the event type name.
+func (e *ClassifiedAdEditedEvent) EventType() string {
+	return "ClassifiedAdEdited"
+}
+
+// NewClassifiedAdEditedEventFromClassifiedAd builds a ClassifiedAdEditedEvent from a ClassifiedAd.
+func NewClassifiedAdEditedEventFromClassifiedAd(ad *ClassifiedAd, occurredAt time.Time) *ClassifiedAdEditedEvent {
+	return &ClassifiedAdEditedEvent{
+		AdID:         ad.ID().String(),
+		Title:        ad.Title(),
+		Description:  ad.Description(),
+		PriceInCents: ad.Price().AmountInCents(),
+		ImageURLs:    ad.ImageURLs(),
+		Category:     string(ad.Category()),
+		ZipCode:      ad.Location().ZipCode(),
+		CityName:     ad.Location().CityName(),
+		SellerEmail:  ad.Seller().Email().String(),
+		SellerPseudo: ad.Seller().Pseudo(),
+		OccurredAt:   occurredAt,
+	}
+}
+
+// ClassifiedAdApprovedEvent is emitted when a classified ad is approved by
+// moderation (submitted → approved).
+type ClassifiedAdApprovedEvent struct {
+	AdID       string
+	OccurredAt time.Time
+}
+
+// EventType returns the event type name.
+func (e *ClassifiedAdApprovedEvent) EventType() string {
+	return "ClassifiedAdApproved"
+}
+
+// NewClassifiedAdApprovedEventFromClassifiedAd builds a ClassifiedAdApprovedEvent from a ClassifiedAd.
+func NewClassifiedAdApprovedEventFromClassifiedAd(ad *ClassifiedAd, occurredAt time.Time) *ClassifiedAdApprovedEvent {
+	return &ClassifiedAdApprovedEvent{
+		AdID:       ad.ID().String(),
+		OccurredAt: occurredAt,
+	}
+}
+
+// ClassifiedAdRejectedEvent is emitted when a classified ad is rejected by
+// moderation (submitted → rejected).
+type ClassifiedAdRejectedEvent struct {
+	AdID       string
+	OccurredAt time.Time
+}
+
+// EventType returns the event type name.
+func (e *ClassifiedAdRejectedEvent) EventType() string {
+	return "ClassifiedAdRejected"
+}
+
+// NewClassifiedAdRejectedEventFromClassifiedAd builds a ClassifiedAdRejectedEvent from a ClassifiedAd.
+func NewClassifiedAdRejectedEventFromClassifiedAd(ad *ClassifiedAd, occurredAt time.Time) *ClassifiedAdRejectedEvent {
+	return &ClassifiedAdRejectedEvent{
+		AdID:       ad.ID().String(),
+		OccurredAt: occurredAt,
+	}
+}
+
+// ClassifiedAdChallengedEvent is emitted when a classified ad is challenged by
+// moderation (submitted → challenged), asking the seller for corrections.
+type ClassifiedAdChallengedEvent struct {
+	AdID       string
+	OccurredAt time.Time
+}
+
+// EventType returns the event type name.
+func (e *ClassifiedAdChallengedEvent) EventType() string {
+	return "ClassifiedAdChallenged"
+}
+
+// NewClassifiedAdChallengedEventFromClassifiedAd builds a ClassifiedAdChallengedEvent from a ClassifiedAd.
+func NewClassifiedAdChallengedEventFromClassifiedAd(ad *ClassifiedAd, occurredAt time.Time) *ClassifiedAdChallengedEvent {
+	return &ClassifiedAdChallengedEvent{
+		AdID:       ad.ID().String(),
+		OccurredAt: occurredAt,
+	}
+}
+
 // BuyerOfferMadeEvent is emitted when a buyer makes an offer on a classified ad.
 type BuyerOfferMadeEvent struct {
 	AdID        string

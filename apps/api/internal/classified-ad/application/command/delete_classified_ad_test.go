@@ -77,6 +77,11 @@ func seedAdForDelete(t *testing.T, repo *fakeClassifiedAdRepository, hasher doma
 	)
 	require.NoError(t, err)
 
+	// Drive the ad through the moderation happy path so it is published,
+	// matching the pre-moderation behavior these tests were written against.
+	require.NoError(t, ad.Approve())
+	require.NoError(t, ad.Publish(submittedAt))
+
 	require.NoError(t, repo.Save(ad))
 	return ad
 }

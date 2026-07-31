@@ -33,6 +33,20 @@ type DeleteClassifiedAdRequest struct {
 	Reason   string `json:"reason"`
 }
 
+// EditClassifiedAdRequest is the request body for PUT /classified-ads/{id}.
+// The seller authenticates with their email and password, like for deletion.
+type EditClassifiedAdRequest struct {
+	Email        string   `json:"email"`
+	Password     string   `json:"password"`
+	Title        string   `json:"title"`
+	Description  string   `json:"description"`
+	PriceInCents int64    `json:"priceInCents"`
+	ImageURLs    []string `json:"imageUrls"`
+	Category     string   `json:"category"`
+	ZipCode      string   `json:"zipCode"`
+	CityName     string   `json:"cityName"`
+}
+
 // Response DTOs
 
 // SubmitClassifiedAdResponse is the response body for a successful submission.

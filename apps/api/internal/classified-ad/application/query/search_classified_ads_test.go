@@ -337,13 +337,24 @@ func TestSearchClassifiedAdsQuery_NeverReturnsNonOnlineAds(t *testing.T) {
 	require.True(t, expired)
 	require.NoError(t, setup.repo.Save(expiredAd))
 
+	submittedAd := saveSubmittedTestAd(t, setup.repo, defaultTestAdParams())
+
+	challengedAd := saveSubmittedTestAd(t, setup.repo, defaultTestAdParams())
+	require.NoError(t, challengedAd.Challenge())
+	require.NoError(t, setup.repo.Save(challengedAd))
+
 	// When
 	results, err := setup.query(SearchClassifiedAdsQueryArgs{})
 
 	// Then
 	require.NoError(t, err)
 	assertIDsInResults(t, results, onlineAd.ID().String())
-	assertIDsNotInResults(t, results, deletedAd.ID().String(), expiredAd.ID().String())
+	assertIDsNotInResults(t, results,
+		deletedAd.ID().String(),
+		expiredAd.ID().String(),
+		submittedAd.ID().String(),
+		challengedAd.ID().String(),
+	)
 }
 
 func TestSearchClassifiedAdsQuery_MapsListItemViewFields(t *testing.T) {

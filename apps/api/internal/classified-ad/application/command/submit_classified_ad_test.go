@@ -31,7 +31,7 @@ func setupSubmitTest(t *testing.T) *submitTestSetup {
 	bus := eventbus.NewSyncInMemoryEventBus()
 	collector := eventbustesting.NewEventCollector()
 
-	err := bus.Subscribe("ClassifiedAdPublished", collector.EventHandler())
+	err := bus.Subscribe("ClassifiedAdSubmitted", collector.EventHandler())
 	require.NoError(t, err)
 
 	return &submitTestSetup{
@@ -91,22 +91,28 @@ func TestSubmitClassifiedAdCommand_Success(t *testing.T) {
 	assert.Equal(t, args.Description, stored.Description())
 	assert.Equal(t, args.PriceInCents, stored.Price().AmountInCents())
 	assert.Equal(t, "seller@example.com", stored.Seller().Email().String())
-	assert.Equal(t, domain.StatusPublished, stored.Status())
-	assert.Equal(t, setup.clock.Now(), stored.PublishedAt())
+	assert.Equal(t, domain.StatusSubmitted, stored.Status())
+	assert.True(t, stored.PublishedAt().IsZero(), "Expected publishedAt to remain unset until moderation approval")
+	assert.False(t, stored.IsOnline(), "Expected a submitted ad not to be online")
 
 	// Verify event emission
 	events := setup.eventCollector.GetEvents()
 	require.Len(t, events, 1)
-	assert.Equal(t, "ClassifiedAdPublished", events[0].EventType())
+	assert.Equal(t, "ClassifiedAdSubmitted", events[0].EventType())
 
-	event, ok := events[0].(*domain.ClassifiedAdPublishedEvent)
-	require.True(t, ok, "Expected event to be *ClassifiedAdPublishedEvent")
+	event, ok := events[0].(*domain.ClassifiedAdSubmittedEvent)
+	require.True(t, ok, "Expected event to be *ClassifiedAdSubmittedEvent")
 	assert.Equal(t, adID, event.AdID)
 	assert.Equal(t, args.Title, event.Title)
+	assert.Equal(t, args.Description, event.Description)
+	assert.Equal(t, args.PriceInCents, event.PriceInCents)
+	assert.Equal(t, args.ImageURLs, event.ImageURLs)
 	assert.Equal(t, string(domain.CategoryConsumerGoods), event.Category)
+	assert.Equal(t, args.ZipCode, event.ZipCode)
+	assert.Equal(t, args.CityName, event.CityName)
 	assert.Equal(t, "seller@example.com", event.SellerEmail)
 	assert.Equal(t, args.SellerPseudo, event.SellerPseudo)
-	assert.Equal(t, setup.clock.Now(), event.PublishedAt)
+	assert.Equal(t, setup.clock.Now(), event.OccurredAt)
 }
 
 func TestSubmitClassifiedAdCommand_ValidationErrors(t *testing.T) {

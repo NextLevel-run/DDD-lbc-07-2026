@@ -16,6 +16,7 @@ type Handler struct {
 	submitClassifiedAd  command.SubmitClassifiedAdCommand
 	makeOffer           command.MakeOfferCommand
 	deleteClassifiedAd  command.DeleteClassifiedAdCommand
+	editClassifiedAd    command.EditClassifiedAdCommand
 	searchClassifiedAds query.SearchClassifiedAdsQuery
 	getClassifiedAd     query.GetClassifiedAdQuery
 }
@@ -25,6 +26,7 @@ func NewHandler(
 	submit command.SubmitClassifiedAdCommand,
 	makeOffer command.MakeOfferCommand,
 	delete_ command.DeleteClassifiedAdCommand,
+	edit command.EditClassifiedAdCommand,
 	search query.SearchClassifiedAdsQuery,
 	get query.GetClassifiedAdQuery,
 ) *Handler {
@@ -32,6 +34,7 @@ func NewHandler(
 		submitClassifiedAd:  submit,
 		makeOffer:           makeOffer,
 		deleteClassifiedAd:  delete_,
+		editClassifiedAd:    edit,
 		searchClassifiedAds: search,
 		getClassifiedAd:     get,
 	}
@@ -44,6 +47,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /classified-ads/{id}", h.GetClassifiedAd)
 	mux.HandleFunc("POST /classified-ads/{id}/offers", h.MakeOffer)
 	mux.HandleFunc("DELETE /classified-ads/{id}", h.DeleteClassifiedAd)
+	mux.HandleFunc("PUT /classified-ads/{id}", h.EditClassifiedAd)
 }
 
 // SubmitClassifiedAd handles POST /classified-ads.
@@ -241,6 +245,36 @@ func (h *Handler) DeleteClassifiedAd(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// EditClassifiedAd handles PUT /classified-ads/{id}.
+func (h *Handler) EditClassifiedAd(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+
+	var req EditClassifiedAdRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.respondError(w, "invalid request body: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err := h.editClassifiedAd(command.EditClassifiedAdCommandArgs{
+		AdID:         id,
+		Email:        req.Email,
+		Password:     req.Password,
+		Title:        req.Title,
+		Description:  req.Description,
+		PriceInCents: req.PriceInCents,
+		ImageURLs:    req.ImageURLs,
+		Category:     req.Category,
+		ZipCode:      req.ZipCode,
+		CityName:     req.CityName,
+	})
+	if err != nil {
+		h.handleDomainError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // handleDomainError maps domain errors to HTTP status codes and writes the response.
 func (h *Handler) handleDomainError(w http.ResponseWriter, err error) {
 	switch {
@@ -249,6 +283,8 @@ func (h *Handler) handleDomainError(w http.ResponseWriter, err error) {
 	case errors.Is(err, domain.ErrInvalidCredentials):
 		h.respondError(w, err.Error(), http.StatusForbidden)
 	case errors.Is(err, domain.ErrAdNotAvailable):
+		h.respondError(w, err.Error(), http.StatusConflict)
+	case errors.Is(err, domain.ErrCannotEdit):
 		h.respondError(w, err.Error(), http.StatusConflict)
 	case isValidationError(err):
 		h.respondError(w, err.Error(), http.StatusBadRequest)

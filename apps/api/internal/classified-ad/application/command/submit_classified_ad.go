@@ -75,7 +75,7 @@ func BuildSubmitClassifiedAdCommand(
 			return "", err
 		}
 
-		event := domain.NewClassifiedAdPublishedEventFromClassifiedAd(ad)
+		event := domain.NewClassifiedAdSubmittedEventFromClassifiedAd(ad)
 		if err := eventBus.Publish(event); err != nil {
 			return "", err
 		}

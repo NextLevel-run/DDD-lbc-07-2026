@@ -90,6 +90,11 @@ func buildTestAd(t *testing.T, params testAdParams) *domain.ClassifiedAd {
 	)
 	require.NoError(t, err)
 
+	// Drive the ad through the moderation happy path so it is published,
+	// with publishedAt set to SubmissionDate (as before moderation existed).
+	require.NoError(t, ad.Approve())
+	require.NoError(t, ad.Publish(params.SubmissionDate))
+
 	return ad
 }
 

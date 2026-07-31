@@ -3,11 +3,13 @@ package command
 import (
 	"errors"
 	"sync"
+	"testing"
 	"time"
 
 	"ddd-second-hand-marketplace/internal/classified-ad/domain"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
 )
 
 // fakeClassifiedAdRepository is a minimal in-memory implementation of
@@ -68,6 +70,48 @@ func (r *fakeClassifiedAdRepository) count() int {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	return len(r.ads)
+}
+
+// newSubmittedAd builds a valid ClassifiedAd in StatusSubmitted, owned by
+// seller@example.com with plaintext password "supersecret" (hashed with
+// fakePasswordHasher), without saving it.
+func newSubmittedAd(t *testing.T, submittedAt time.Time) *domain.ClassifiedAd {
+	t.Helper()
+
+	email, err := domain.NewEmail("seller@example.com")
+	require.NoError(t, err)
+	password, err := domain.NewPassword("supersecret", fakePasswordHasher{})
+	require.NoError(t, err)
+	seller, err := domain.NewSeller(email, "seller-pseudo", password)
+	require.NoError(t, err)
+	category, err := domain.NewCategory(string(domain.CategoryConsumerGoods))
+	require.NoError(t, err)
+	location, err := domain.NewLocation("75001", "Paris")
+	require.NoError(t, err)
+
+	ad, err := domain.NewClassifiedAd(
+		"Vélo hollandais",
+		"Très bon état, peu servi.",
+		15000,
+		seller,
+		[]string{"http://img/1.jpg"},
+		category,
+		location,
+		domain.NewSubmissionDate(submittedAt),
+	)
+	require.NoError(t, err)
+
+	return ad
+}
+
+// seedSubmittedAd creates and persists a valid classified ad still awaiting
+// moderation (StatusSubmitted), returning it.
+func seedSubmittedAd(t *testing.T, repo *fakeClassifiedAdRepository, submittedAt time.Time) *domain.ClassifiedAd {
+	t.Helper()
+
+	ad := newSubmittedAd(t, submittedAt)
+	require.NoError(t, repo.Save(ad))
+	return ad
 }
 
 // fakePasswordHasher is a plaintext-passthrough implementation of
